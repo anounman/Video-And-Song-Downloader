@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'ads/admob.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'pages/home.dart';
 
