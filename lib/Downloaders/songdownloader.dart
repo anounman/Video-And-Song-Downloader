@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import '../ads/admob.dart';
 import '../pages/music_search.dart';
 import 'package:page_transition/page_transition.dart';
@@ -12,9 +14,10 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:app/ads/admob.dart';
+import 'package:open_file/open_file.dart';
 
-import '../main.dart';
+
 
 bool isPlayed = false;
 
@@ -45,11 +48,10 @@ class _MusicDownloadState extends State<MusicDownload> {
     filename = widget.name.toString();
     resPonce = false;
     fetchUrl =
-        "https://songapiv1.herokuapp.com/?name=${widget.name.toString()}";
+        "https://songapiv1.herokuapp.com/?name=${widget.name.toString()}+ lyrics";
     display_image = "";
     link = "";
     display_image = "";
-
     this.getJsonData();
   }
 
@@ -93,8 +95,83 @@ class Body extends StatefulWidget {
 
 class _BodyState extends State<Body> {
 //@override
+  FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
+
+  void initState() {
+    super.initState();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin(
+      
+    );
+    final android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final iOS = IOSInitializationSettings();
+    final initSettings = InitializationSettings(android: android);
+    
+    flutterLocalNotificationsPlugin!
+        .initialize(initSettings, 
+        onSelectNotification: _onSelectNotification);
+  }
+
+  void _onSelectNotification(String? json) async {
+    final obj = jsonDecode(json!);
+    
+    if (obj['isSuccess']) {
+      OpenFile.open(obj['filePath']);
+    } else {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text('Error'),
+          content: Text('${obj['error']}'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showNotification(Map<String, dynamic> downloadStatus) async {
+    final text = downloadStatus['text'];
+    int percentage = downloadStatus['percentage'];
+    int total = downloadStatus['total'];
+    final android = AndroidNotificationDetails('channel id', 'channel name',
+        enableVibration: (text != '') ? false : true,
+        showProgress: (text != '') ? true : false,
+        enableLights: false,
+        
+        maxProgress: 100,
+        progress: percentage,
+        onlyAlertOnce: (text != '') ? true : false,
+        priority: (text != '') ? Priority.min : Priority.high,
+        importance: (text != '') ? Importance.low : Importance.max);
+    final platform = NotificationDetails(android: android);
+    final json = jsonEncode(downloadStatus);
+    final isSuccess = downloadStatus['isSuccess'];
+
+    await flutterLocalNotificationsPlugin!.show(
+        (text != '') ? 1 : 0, // notification id
+        (text != '') ? text : (isSuccess ? 'Downloaded' : 'Failed'),
+        (text != '')
+            ? ''
+            : (isSuccess
+                ? 'File has been downloaded successfully!'
+                : 'There was an error while downloading the file.'),
+        platform,
+        
+        payload: json);
+  }
 
   void downloadMusic() async {
+    // try {
+    //   admobService.showRewardAds();
+    // } catch (e) {
+    //   print("Error>${e.toString()}");
+    // }
+    Map<String, dynamic> result = {
+      'isSuccess': false,
+      'filePath': null,
+      'error': null,
+      'text': '',
+      'percentage': 0,
+      'total': 0,
+    };
     if (await Permission.storage.request().isGranted) {
       setState(() {
         permissionGranted = true;
@@ -139,6 +216,10 @@ class _BodyState extends State<Body> {
           setState(() {
             downloadText = "Downloading....${percentage.floor()}%";
           });
+          result['text'] = downloadText;
+          result['percentage'] = percentage.floor();
+          result['total'] = total;
+          _showNotification(result);
         } else {
           downloadText = "Download Completed";
           setState(() {
@@ -146,13 +227,18 @@ class _BodyState extends State<Body> {
           });
         }
       });
+      result['isSuccess'] = true;
+      result['filePath'] = "${path}/${filename}.mp3";
     } catch (e) {
+      result['error'] = e.toString();
       await Permission.storage.request();
       setState(() {
         isClicked = false;
         downloadText = "Download Faild";
       });
       print("Download Throug>${e}");
+    } finally {
+      await _showNotification(result);
     }
   }
 
@@ -343,16 +429,16 @@ class _BodyState extends State<Body> {
                             downloadText,
                             style: TextStyle(color: Colors.white),
                           ).p16(),
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Container(
-                              height: 50,
-                              child: AdWidget(
-                                key: UniqueKey(),
-                                ad: admobService.myBanner..load(),
-                              ),
-                            ),
-                          ).pOnly(top: 300),
+                          // Align(
+                          //   alignment: Alignment.bottomCenter,
+                          //   child: Container(
+                          //     height: 50,
+                          //     child: AdWidget(
+                          //       key: UniqueKey(),
+                          //       ad: _Dowbanner!,
+                          //     ),
+                          //   ),
+                          // ).pOnly(top: 300),
                         ],
                       ),
                     ],

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../Downloaders/youtubedownloader.dart';
 import '../ads/admob.dart';
+import '../main.dart';
 import 'home.dart';
 import 'music_search.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -19,6 +20,15 @@ class _YouTubeState extends State<YouTube> {
   String data = "";
   final _fromkey = GlobalKey<FormState>();
   bool isClicked = false;
+  BannerAd? _bannerAd;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _bannerAd = admobService.banner_ad();
+    _bannerAd?..load();
+  }
+
   @override
   Widget build(BuildContext context) {
     AdmobService admobService = new AdmobService();
@@ -186,7 +196,7 @@ class _YouTubeState extends State<YouTube> {
                           height: 50,
                           child: AdWidget(
                             key: UniqueKey(),
-                            ad: admobService.myBanner..load(),
+                            ad: _bannerAd!,
                           ),
                         ),
                       ],

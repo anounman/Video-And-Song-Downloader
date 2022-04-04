@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../ads/admob.dart';
+import '../main.dart';
 import 'home.dart';
 import '../Downloaders/songdownloader.dart';
 import 'youtube.dart';
@@ -21,6 +22,15 @@ class _musicState extends State<music> {
   final _fromkey = GlobalKey<FormState>();
   bool isClicked = false;
   String data = "";
+  BannerAd? _bannerAd;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _bannerAd = admobService.banner_ad();
+    _bannerAd?..load();
+  }
+
   @override
   Widget build(BuildContext context) {
     AdmobService admobService = new AdmobService();
@@ -47,6 +57,7 @@ class _musicState extends State<music> {
                   TextFormField(
                     style: TextStyle(fontSize: 18, color: Colors.white),
                     onFieldSubmitted: (value) {
+                      AdmobService().showInterstialAds();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -188,7 +199,7 @@ class _musicState extends State<music> {
                           height: 50,
                           child: AdWidget(
                             key: UniqueKey(),
-                            ad: admobService.myBanner..load(),
+                            ad: _bannerAd!,
                           ),
                         ),
                       ],

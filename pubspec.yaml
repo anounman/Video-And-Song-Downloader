@@ -32,10 +32,12 @@ dependencies:
   external_path: ^1.0.1
   flutter:
     sdk: flutter
+  flutter_downloader: ^1.7.3
   flutter_local_notifications: ^9.3.3
-  google_mobile_ads: ^1.1.0
+  google_mobile_ads: ^1.2.0
   http: ^0.13.4
   just_audio: ^0.9.20
+  open_file: ^3.2.1
   page_transition: ^2.0.5
   permission_handler: ^9.2.0
   velocity_x: ^3.4.0
@@ -58,7 +60,6 @@ flutter:
     - assets/images/instagram.jpeg
     - assets/images/youtube.jpeg
     - assets/images/music.jpeg
-
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

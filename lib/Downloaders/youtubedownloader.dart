@@ -27,6 +27,7 @@ String display_image = "";
 bool permissionGranted = false;
 bool resPonce = false;
 bool isAdsPlay = false;
+BannerAd? _bannerAd;
 
 class _YouTubeDownloaderState extends State<YouTubeDownloader> {
   AdmobService admobService = new AdmobService();
@@ -36,6 +37,8 @@ class _YouTubeDownloaderState extends State<YouTubeDownloader> {
     link = "";
     super.initState();
     this.getJsonData();
+    _bannerAd = admobService.banner_ad();
+    _bannerAd?..load();
 
     try {
       admobService.showInterstialAds();
@@ -302,7 +305,7 @@ class _BodyState extends State<Body> {
                       height: 50,
                       child: AdWidget(
                         key: UniqueKey(),
-                        ad: admobService.myBanner..load(),
+                        ad: _bannerAd!,
                       ),
                     ).pOnly(top: 175)
                   ],

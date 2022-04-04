@@ -11,10 +11,16 @@ Future<void> main() async {
 }
 
 AdmobService admobService = AdmobService();
+BannerAd? _CorebannerAd;
+RewardedAd? _CorerewardedAd;
+
 @override
 void initState() {
   admobService.createInterstialAd();
   admobService.showInterstialAds();
+  admobService.create_reward();
+  _CorebannerAd = admobService.banner_ad();
+  _CorebannerAd?..load();
 }
 
 class MainApp extends StatelessWidget {

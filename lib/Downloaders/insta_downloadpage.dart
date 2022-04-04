@@ -3,7 +3,6 @@ import '../ads/admob.dart';
 import '../pages/home.dart';
 import '../utility/route.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:dio/dio.dart';
 import 'package:external_path/external_path.dart';
@@ -12,8 +11,6 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
-
-import '../main.dart';
 
 class DownloadPage extends StatefulWidget {
   final String name;
@@ -31,6 +28,7 @@ String comment = "";
 bool permissionGranted = false;
 String dataType = "";
 bool resPonce = false;
+BannerAd? _bannerAd;
 
 class _DownloadPageState extends State<DownloadPage> {
   AdmobService admobService = new AdmobService();
@@ -101,12 +99,59 @@ class Body extends StatefulWidget {
 
 class _BodyState extends State<Body> {
 //@override
+  FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
   bool isClicked = false;
   String downloadText = "";
   double _percentage = 0;
   bool _isDownload = false;
   bool isAdsPlay = false;
   bool _isDownloadFaild = false;
+
+  @override
+  void initState() {
+    super.initState();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    final android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final iOS = IOSInitializationSettings();
+    final initSettings = InitializationSettings(android: android);
+
+    flutterLocalNotificationsPlugin!
+        .initialize(initSettings, onSelectNotification: _onSelectNotification);
+  }
+
+  void _onSelectNotification(String? json) async {
+    final obj = jsonDecode(json!);
+
+    if (obj['isSuccess']) {
+      // OpenFile.open(obj['filePath']);
+    } else {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text('Error'),
+          content: Text('${obj['error']}'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showNotification(Map<String, dynamic> downloadStatus) async {
+    final android = AndroidNotificationDetails('channel id', 'channel name',
+        priority: Priority.high, importance: Importance.max);
+    final iOS = IOSNotificationDetails();
+    final platform = NotificationDetails(android: android);
+    final json = jsonEncode(downloadStatus);
+    final isSuccess = downloadStatus['isSuccess'];
+
+    await flutterLocalNotificationsPlugin!.show(
+        0, // notification id
+        isSuccess ? 'Success' : 'Failure',
+        isSuccess
+            ? 'File has been downloaded successfully!'
+            : 'There was an error while downloading the file.',
+        platform,
+        payload: json);
+  }
 
   void downloadInsta() async {
     if (await Permission.storage.request().isGranted) {
@@ -123,6 +168,12 @@ class _BodyState extends State<Body> {
     setState(() {
       isClicked = true;
     });
+    Map<String, dynamic> result = {
+      'isSuccess': false,
+      'filePath': null,
+      'error': null,
+    };
+
     try {
       var path = await ExternalPath.getExternalStoragePublicDirectory(
           ExternalPath.DIRECTORY_DOWNLOADS);
@@ -146,10 +197,18 @@ class _BodyState extends State<Body> {
           });
         }
       });
+
+      result['isSuccess'] = true;
+      result['filePath'] = ((dataType == "video")
+          ? "${path}/${like}.mp4"
+          : "${path}/${like}.jpg");
     } catch (e) {
       isClicked = false;
       _isDownloadFaild = true;
+      result['error'] = e.toString();
       print("Download Throug>${e}");
+    } finally {
+      await _showNotification(result);
     }
   }
 
@@ -313,7 +372,7 @@ class _BodyState extends State<Body> {
                       height: 50,
                       child: AdWidget(
                         key: UniqueKey(),
-                        ad: admobService.myBanner..load(),
+                        ad: _bannerAd!,
                       ),
                     )
                   ],

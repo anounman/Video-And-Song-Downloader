@@ -21,11 +21,13 @@ class _HomePagemainState extends State<HomePagemain> {
   String data = "";
   final _fromkey = GlobalKey<FormState>();
   bool isClicked = false;
+  BannerAd? _bannerAd;
 
   void initState() {
     super.initState();
-    admobService.createInterstialAd();
     admobService.showInterstialAds();
+    _bannerAd = admobService.banner_ad();
+    _bannerAd?..load();
   }
 
   @override
@@ -193,7 +195,7 @@ class _HomePagemainState extends State<HomePagemain> {
                           height: 50,
                           child: AdWidget(
                             key: UniqueKey(),
-                            ad: admobService.myBanner..load(),
+                            ad: _bannerAd!,
                           ),
                         ),
                       ],
