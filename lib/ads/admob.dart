@@ -1,20 +1,25 @@
+// ignore_for_file: unnecessary_null_comparison
+
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:io';
+import '../pages/home.dart';
+
+
 
 class AdmobService {
   static String get bannerId => Platform.isAndroid
-      ? 'ca-app-pub-3922299637282329/6558094634'
-      : 'ca-app-pub-3922299637282329/6558094634';
+      ? 'ca-app-pub-4467473017802435/1382215886'
+      : 'ca-app-pub-4467473017802435/1382215886';
   // ? 'ca-app-pub-3940256099942544/6300978111'
   // : 'ca-app-pub-3940256099942544/6300978111';
   static String get interstialId => Platform.isAndroid
-      ? 'ca-app-pub-3922299637282329/6233633338'
-      : 'ca-app-pub-3922299637282329/6233633338';
+      ? 'ca-app-pub-4467473017802435/7181337470'
+      : 'ca-app-pub-4467473017802435/7181337470';
   // ? 'ca-app-pub-3940256099942544/1033173712'
   // : 'ca-app-pub-3940256099942544/1033173712';
   static String get rewardID => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/5224354917'
-      : 'ca-app-pub-3940256099942544/1712485313';
+      ? 'ca-app-pub-4467473017802435/2853373364'
+      : 'ca-app-pub-4467473017802435/2853373364';
 
   InterstitialAd? _interstitialAd;
   int _numInterstitialLoadAttempts = 0;
@@ -31,9 +36,7 @@ class AdmobService {
 
   void createInterstialAd() {
     InterstitialAd.load(
-        adUnitId: Platform.isAndroid
-            ? 'ca-app-pub-3940256099942544/1033173712'
-            : 'ca-app-pub-3940256099942544/4411468910',
+        adUnitId: interstialId,
         request: AdRequest(),
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (InterstitialAd ad) {
@@ -77,9 +80,13 @@ class AdmobService {
     _interstitialAd = null;
   }
 
+  void dispose_interstial() {
+    _interstitialAd?.dispose();
+  }
+
   banner_ad() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+      adUnitId: bannerId,
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -118,7 +125,7 @@ class AdmobService {
         }));
   }
 
-  showRewardAds() {
+  showRewardAds() async {
     if (_rewardedAd == null) {
       print('Warning: attempt to show rewarded before loaded.');
       return;
@@ -134,12 +141,18 @@ class AdmobService {
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         print('$ad onAdFailedToShowFullScreenContent: $error');
         ad.dispose();
+        int r = prefs.getInt('downloaded') ?? 0;
+        r = r + 30;
+        prefs.setInt('downloaded', r);
         create_reward();
       },
     );
     _rewardedAd!.setImmersiveMode(true);
     _rewardedAd!.show(
-        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) async {
+      int r = prefs.getInt('downloaded') ?? 0;
+      r = r + 30;
+      prefs.setInt('downloaded', r);
       // setState(() {
       //   coin = coin + (reward.amount).toInt();
       // });

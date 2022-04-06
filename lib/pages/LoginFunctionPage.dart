@@ -12,7 +12,6 @@ class LoginFunctionPage extends StatefulWidget {
 class _LoginFunctionPageState extends State<LoginFunctionPage> {
   @override
   Widget build(BuildContext context) {
-    bool isClicked = false;
     return Scaffold(
       body: Body(),
     );
@@ -27,7 +26,6 @@ class Body extends StatefulWidget {
 }
 
 class _BodyState extends State<Body> {
-  @override
   bool isClicked = false;
   Widget build(BuildContext context) {
     return Container(

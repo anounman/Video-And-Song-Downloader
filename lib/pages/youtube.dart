@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../Downloaders/youtubedownloader.dart';
 import '../ads/admob.dart';
@@ -18,12 +17,12 @@ class YouTube extends StatefulWidget {
 class _YouTubeState extends State<YouTube> {
   // @override
   String data = "";
+  // ignore: unused_field
   final _fromkey = GlobalKey<FormState>();
   bool isClicked = false;
   BannerAd? _bannerAd;
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _bannerAd = admobService.banner_ad();
     _bannerAd?..load();

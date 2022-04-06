@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../ads/admob.dart';
 import '../main.dart';
@@ -19,13 +18,13 @@ class music extends StatefulWidget {
 
 class _musicState extends State<music> {
   // @override
+  // ignore: unused_field
   final _fromkey = GlobalKey<FormState>();
   bool isClicked = false;
   String data = "";
   BannerAd? _bannerAd;
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _bannerAd = admobService.banner_ad();
     _bannerAd?..load();

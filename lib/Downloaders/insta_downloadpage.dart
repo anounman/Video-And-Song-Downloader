@@ -112,7 +112,6 @@ class _BodyState extends State<Body> {
     super.initState();
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     final android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final iOS = IOSInitializationSettings();
     final initSettings = InitializationSettings(android: android);
 
     flutterLocalNotificationsPlugin!
@@ -138,7 +137,6 @@ class _BodyState extends State<Body> {
   Future<void> _showNotification(Map<String, dynamic> downloadStatus) async {
     final android = AndroidNotificationDetails('channel id', 'channel name',
         priority: Priority.high, importance: Importance.max);
-    final iOS = IOSNotificationDetails();
     final platform = NotificationDetails(android: android);
     final json = jsonEncode(downloadStatus);
     final isSuccess = downloadStatus['isSuccess'];
@@ -213,7 +211,6 @@ class _BodyState extends State<Body> {
   }
 
   Widget build(BuildContext context) {
-    AdmobService admobService = new AdmobService();
     return resPonce
         ? Scaffold(
             body: Column(

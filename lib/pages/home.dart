@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../ads/admob.dart';
 import 'music_search.dart';
 import 'youtube.dart';
@@ -15,11 +15,12 @@ class HomePagemain extends StatefulWidget {
   _HomePagemainState createState() => _HomePagemainState();
 }
 
+late SharedPreferences prefs;
+
 class _HomePagemainState extends State<HomePagemain> {
   AdmobService admobService = AdmobService();
   // @override
   String data = "";
-  final _fromkey = GlobalKey<FormState>();
   bool isClicked = false;
   BannerAd? _bannerAd;
 
@@ -28,6 +29,11 @@ class _HomePagemainState extends State<HomePagemain> {
     admobService.showInterstialAds();
     _bannerAd = admobService.banner_ad();
     _bannerAd?..load();
+    setMethod();
+  }
+
+  void setMethod() async {
+    prefs = await SharedPreferences.getInstance();
   }
 
   @override

@@ -163,7 +163,6 @@ class _BodyState extends State<Body> {
   }
 
   Widget build(BuildContext context) {
-    AdmobService admobService = new AdmobService();
     return resPonce
         ? Scaffold(
             body: Column(

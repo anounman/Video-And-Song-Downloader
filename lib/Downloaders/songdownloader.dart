@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:app/main.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-import '../ads/admob.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../pages/music_search.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,8 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:app/ads/admob.dart';
 import 'package:open_file/open_file.dart';
-
-
+import '../pages/home.dart';
 
 bool isPlayed = false;
 
@@ -43,8 +42,11 @@ final _player = AudioPlayer();
 class _MusicDownloadState extends State<MusicDownload> {
   // In the constructor, require a RecordObject.
   AdmobService admobService = AdmobService();
+  BannerAd? bannerAd;
   void initState() {
     super.initState();
+    bannerAd = admobService.banner_ad();
+    bannerAd?.load();
     filename = widget.name.toString();
     resPonce = false;
     fetchUrl =
@@ -80,15 +82,20 @@ class _MusicDownloadState extends State<MusicDownload> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        body: Body(),
+        body: Body(
+          bannerAd: bannerAd!,
+          admobService: admobService,
+        ),
       ),
     );
   }
 }
 
 class Body extends StatefulWidget {
-  const Body({Key? key}) : super(key: key);
-
+  const Body({Key? key, required this.bannerAd, required this.admobService})
+      : super(key: key);
+  final BannerAd bannerAd;
+  final AdmobService admobService;
 ////@override
   _BodyState createState() => _BodyState();
 }
@@ -96,24 +103,29 @@ class Body extends StatefulWidget {
 class _BodyState extends State<Body> {
 //@override
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
-
+  int Adshow = 0;
+  int DownlodsAdd = 0;
+  int notifiactionID = 0;
   void initState() {
     super.initState();
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin(
-      
-    );
+    if (downloads <= 30) admobService.create_reward();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     final android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final iOS = IOSInitializationSettings();
     final initSettings = InitializationSettings(android: android);
-    
+    if (Adshow == 0) admobService.createInterstialAd();
     flutterLocalNotificationsPlugin!
-        .initialize(initSettings, 
-        onSelectNotification: _onSelectNotification);
+        .initialize(initSettings, onSelectNotification: _onSelectNotification);
+  }
+
+  void getData() {
+    setState(() {
+      downloads = prefs.getInt('downloaded') ?? 0;
+    });
   }
 
   void _onSelectNotification(String? json) async {
     final obj = jsonDecode(json!);
-    
+
     if (obj['isSuccess']) {
       OpenFile.open(obj['filePath']);
     } else {
@@ -130,12 +142,10 @@ class _BodyState extends State<Body> {
   Future<void> _showNotification(Map<String, dynamic> downloadStatus) async {
     final text = downloadStatus['text'];
     int percentage = downloadStatus['percentage'];
-    int total = downloadStatus['total'];
     final android = AndroidNotificationDetails('channel id', 'channel name',
         enableVibration: (text != '') ? false : true,
         showProgress: (text != '') ? true : false,
         enableLights: false,
-        
         maxProgress: 100,
         progress: percentage,
         onlyAlertOnce: (text != '') ? true : false,
@@ -146,7 +156,7 @@ class _BodyState extends State<Body> {
     final isSuccess = downloadStatus['isSuccess'];
 
     await flutterLocalNotificationsPlugin!.show(
-        (text != '') ? 1 : 0, // notification id
+        notifiactionID, // notification id
         (text != '') ? text : (isSuccess ? 'Downloaded' : 'Failed'),
         (text != '')
             ? ''
@@ -154,15 +164,17 @@ class _BodyState extends State<Body> {
                 ? 'File has been downloaded successfully!'
                 : 'There was an error while downloading the file.'),
         platform,
-        
         payload: json);
   }
 
   void downloadMusic() async {
     // try {
-    //   admobService.showRewardAds();
+    //   admobService.showInterstialAds();
+    //   Adshow += 1;
     // } catch (e) {
     //   print("Error>${e.toString()}");
+    // } finally {
+    //   admobService.dispose_interstial();
     // }
     Map<String, dynamic> result = {
       'isSuccess': false,
@@ -172,6 +184,14 @@ class _BodyState extends State<Body> {
       'percentage': 0,
       'total': 0,
     };
+    if (permissionGranted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => HomePagemain()),
+        (Route<dynamic> route) => false,
+      );
+    }
+    notifiactionID += 1;
     if (await Permission.storage.request().isGranted) {
       setState(() {
         permissionGranted = true;
@@ -186,59 +206,76 @@ class _BodyState extends State<Body> {
     setState(() {
       isClicked = true;
     });
-    try {
-      var path = await ExternalPath.getExternalStoragePublicDirectory(
-          ExternalPath.DIRECTORY_DOWNLOADS);
-      Dio dio = Dio();
-      int lent = 21;
+    if (downloads <= 30) {
       try {
-        if (filename.length <= 20) {
-          lent = filename.length;
-        }
-        filename = filename.replaceAll('/', '');
-        filename = filename.replaceAll('https', '');
-        filename = filename.replaceAll(':', '');
-        print(filename.characters.take(lent));
+        admobService.showRewardAds();
+        admobService.showInterstialAds();
+        downloads += 30;
       } catch (e) {
-        print("Name Change Error$e");
+        DownlodsAdd = downloads + 30;
+        downloads = DownlodsAdd;
+        prefs.setInt('downloaded', DownlodsAdd);
+      } finally {
+        downloadMusic();
       }
-
-      Directory path_name = await Directory("${path}/${filename}.mp3");
-      print(path_name.existsSync());
-      if (await path_name.exists()) {
-        path_name.delete();
-      }
-      await dio.download(hd_link, "${path}/${filename}.mp3",
-          onReceiveProgress: (rec, total) {
-        var percentage = (rec / total) * 100;
-        if (percentage < 100) {
-          _percentage = percentage / 100;
-          setState(() {
-            downloadText = "Downloading....${percentage.floor()}%";
-          });
-          result['text'] = downloadText;
-          result['percentage'] = percentage.floor();
-          result['total'] = total;
-          _showNotification(result);
-        } else {
-          downloadText = "Download Completed";
-          setState(() {
-            _isDownload = true;
-          });
+    } else {
+      try {
+        var path = await ExternalPath.getExternalStoragePublicDirectory(
+            ExternalPath.DIRECTORY_DOWNLOADS);
+        Dio dio = Dio();
+        int lent = 21;
+        try {
+          if (filename.length <= 20) {
+            lent = filename.length;
+          }
+          filename = filename.replaceAll('/', '');
+          filename = filename.replaceAll('https', '');
+          filename = filename.replaceAll(':', '');
+          print(filename.characters.take(lent));
+        } catch (e) {
+          print("Name Change Error$e");
         }
-      });
-      result['isSuccess'] = true;
-      result['filePath'] = "${path}/${filename}.mp3";
-    } catch (e) {
-      result['error'] = e.toString();
-      await Permission.storage.request();
-      setState(() {
-        isClicked = false;
-        downloadText = "Download Faild";
-      });
-      print("Download Throug>${e}");
-    } finally {
-      await _showNotification(result);
+
+        Directory path_name = await Directory("${path}/${filename}.mp3");
+        print(path_name.existsSync());
+        if (await path_name.exists()) {
+          path_name.delete();
+        }
+        await dio.download(hd_link, "${path}/${filename}.mp3",
+            onReceiveProgress: (rec, total) {
+          var percentage = (rec / total) * 100;
+          if (percentage < 100) {
+            _percentage = percentage / 100;
+            // setState(() {
+            downloadText = "Downloading....${percentage.floor()}%";
+            // });
+            result['text'] = downloadText;
+            result['percentage'] = percentage.floor();
+            result['total'] = total;
+            _showNotification(result);
+          } else {
+            downloadText = "Download Completed";
+            // setState(() {
+            _isDownload = true;
+            // });
+          }
+        });
+        result['isSuccess'] = true;
+        result['filePath'] = "${path}/${filename}.mp3";
+      } catch (e) {
+        result['error'] = e.toString();
+        await Permission.storage.request();
+        setState(() {
+          isClicked = false;
+          downloadText = "Download Faild";
+        });
+        print("Download Throug>${e}");
+      } finally {
+        result['text'] = '';
+        downloads -= 10;
+        await _showNotification(result);
+        admobService.showInterstialAds();
+      }
     }
   }
 
@@ -249,8 +286,8 @@ class _BodyState extends State<Body> {
 
   Widget build(BuildContext context) {
     return resPonce
-        ? Scaffold(
-            body: Column(
+        ? Container(
+            child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -407,21 +444,22 @@ class _BodyState extends State<Body> {
                                     width: isClicked ? 70 : 150,
                                     height: 70,
                                     child: Center(
-                                        child: _isDownload
-                                            ? Icon(Icons.done,
-                                                color: Colors.white)
-                                            : (isClicked
-                                                ? CircularProgressIndicator(
-                                                    value: _percentage,
-                                                    color: Colors.white,
-                                                    strokeWidth: 10,
-                                                    backgroundColor: Colors.red,
-                                                  )
-                                                : Text(
-                                                    "Download",
-                                                    style: TextStyle(
-                                                        color: Colors.white),
-                                                  ))),
+                                        child: Text(
+                                      "Dondload",
+                                      style: TextStyle(color: Colors.white),
+                                    )
+                                        // : (isClicked
+                                        //     ? CircularProgressIndicator(
+                                        //         value: _percentage,
+                                        //         color: Colors.white,
+                                        //         strokeWidth: 10,
+                                        //         backgroundColor: Colors.red,
+                                        //       )
+                                        //     : Text(
+                                        //         "Download",
+                                        //         style: TextStyle(
+                                        //            color: Colors.white))),
+                                        ),
                                   ),
                                 )),
                           ),
@@ -429,16 +467,6 @@ class _BodyState extends State<Body> {
                             downloadText,
                             style: TextStyle(color: Colors.white),
                           ).p16(),
-                          // Align(
-                          //   alignment: Alignment.bottomCenter,
-                          //   child: Container(
-                          //     height: 50,
-                          //     child: AdWidget(
-                          //       key: UniqueKey(),
-                          //       ad: _Dowbanner!,
-                          //     ),
-                          //   ),
-                          // ).pOnly(top: 300),
                         ],
                       ),
                     ],
