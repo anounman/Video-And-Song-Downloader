@@ -38,6 +38,8 @@ String filename = "";
 String error = "";
 bool isAdsPlay = false;
 final _player = AudioPlayer();
+bool isBack = false;
+bool isDownloading = false;
 
 class _MusicDownloadState extends State<MusicDownload> {
   // In the constructor, require a RecordObject.
@@ -168,6 +170,7 @@ class _BodyState extends State<Body> {
   }
 
   void downloadMusic() async {
+    isDownloading = true;
     // try {
     //   admobService.showInterstialAds();
     //   Adshow += 1;
@@ -184,13 +187,13 @@ class _BodyState extends State<Body> {
       'percentage': 0,
       'total': 0,
     };
-    if (permissionGranted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => HomePagemain()),
-        (Route<dynamic> route) => false,
-      );
-    }
+    // if (permissionGranted) {
+    //   Navigator.pushAndRemoveUntil(
+    //     context,
+    //     MaterialPageRoute(builder: (context) => HomePagemain()),
+    //     (Route<dynamic> route) => false,
+    //   );
+    // }
     notifiactionID += 1;
     if (await Permission.storage.request().isGranted) {
       setState(() {
@@ -213,6 +216,7 @@ class _BodyState extends State<Body> {
         downloads += 30;
       } catch (e) {
         DownlodsAdd = downloads + 30;
+        isDownloading = false;
         downloads = DownlodsAdd;
         prefs.setInt('downloaded', DownlodsAdd);
       } finally {
@@ -246,18 +250,22 @@ class _BodyState extends State<Body> {
           var percentage = (rec / total) * 100;
           if (percentage < 100) {
             _percentage = percentage / 100;
-            // setState(() {
-            downloadText = "Downloading....${percentage.floor()}%";
-            // });
+            if (!isBack) {
+              setState(() {
+                downloadText = "Downloading....${percentage.floor()}%";
+              });
+            } else {
+              downloadText = "Downloading.....${percentage.floor()}%";
+            }
             result['text'] = downloadText;
             result['percentage'] = percentage.floor();
             result['total'] = total;
             _showNotification(result);
           } else {
             downloadText = "Download Completed";
-            // setState(() {
-            _isDownload = true;
-            // });
+            setState(() {
+              _isDownload = true;
+            });
           }
         });
         result['isSuccess'] = true;
@@ -265,13 +273,19 @@ class _BodyState extends State<Body> {
       } catch (e) {
         result['error'] = e.toString();
         await Permission.storage.request();
-        setState(() {
-          isClicked = false;
+        isDownloading = false;
+        if (!isBack) {
+          setState(() {
+            isClicked = false;
+            downloadText = "Download Faild";
+          });
+        } else {
           downloadText = "Download Faild";
-        });
+        }
         print("Download Throug>${e}");
       } finally {
         result['text'] = '';
+        isDownloading = false;
         downloads -= 10;
         await _showNotification(result);
         admobService.showInterstialAds();
@@ -285,193 +299,205 @@ class _BodyState extends State<Body> {
   bool _isDownload = false;
 
   Widget build(BuildContext context) {
-    return resPonce
-        ? Container(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                            context,
-                            PageTransition(
-                                child: music(),
-                                type: PageTransitionType.rightToLeft));
-                      },
-                      child: Container(
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 30,
-                          color: Colors.red,
+    return WillPopScope(
+      onWillPop: () async {
+        print("Backing....");
+        setState(() {
+          isBack = true;
+        });
+        return !await Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => HomePagemain()),
+            (Route<dynamic> route) => false);
+      },
+      child: resPonce
+          ? Container(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                              context,
+                              PageTransition(
+                                  child: HomePagemain(),
+                                  type: PageTransitionType.rightToLeft));
+                        },
+                        child: Container(
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 30,
+                            color: Colors.red,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ).p12(),
-                Padding(
-                  padding: EdgeInsets.only(top: 300),
-                  child: Row(
-                    children: [
-                      "This Data Is Not Downloadable"
-                          .text
-                          .bold
-                          .xl2
-                          .blue800
-                          .make(),
-                      Icon(
-                        Icons.broken_image_rounded,
-                        color: Colors.red,
-                        size: 40,
-                      )
                     ],
-                  ).pOnly(left: 50),
-                ),
-              ],
-            ),
-          )
-        : (link.isEmpty)
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: Colors.red,
-                ),
-              )
-            : SingleChildScrollView(
-                child: Container(
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                    image: new DecorationImage(
-                        image: new AssetImage("assets/images/background.jpg"),
-                        fit: BoxFit.cover),
+                  ).p12(),
+                  Padding(
+                    padding: EdgeInsets.only(top: 300),
+                    child: Row(
+                      children: [
+                        "This Data Is Not Downloadable"
+                            .text
+                            .bold
+                            .xl2
+                            .blue800
+                            .make(),
+                        Icon(
+                          Icons.broken_image_rounded,
+                          color: Colors.red,
+                          size: 40,
+                        )
+                      ],
+                    ).pOnly(left: 50),
                   ),
-                  child: Column(
-                    children: [
-                      Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              InkWell(
-                                onTap: () {
-                                  Navigator.pushReplacement(
-                                      context,
-                                      PageTransition(
-                                          child: music(),
-                                          type:
-                                              PageTransitionType.rightToLeft));
-                                },
-                                child: Container(
-                                  child: Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    size: 30,
+                ],
+              ),
+            )
+          : (link.isEmpty)
+              ? Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.red,
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Container(
+                    height: MediaQuery.of(context).size.height,
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                      image: new DecorationImage(
+                          image: new AssetImage("assets/images/background.jpg"),
+                          fit: BoxFit.cover),
+                    ),
+                    child: Column(
+                      children: [
+                        Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      isBack = true;
+                                    });
+                                    Navigator.pushReplacement(
+                                        context,
+                                        PageTransition(
+                                            child: HomePagemain(),
+                                            type: PageTransitionType
+                                                .rightToLeft));
+                                  },
+                                  child: Container(
+                                    child: Icon(
+                                      Icons.arrow_back_ios_new_rounded,
+                                      size: 30,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ).p12(),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                          ).pOnly(left: 15, top: 10),
-                          Container(
-                            decoration:
-                                BoxDecoration(border: Border.all(width: 2)),
-                            child: Image.network(
-                              display_image,
-                              fit: BoxFit.scaleDown,
+                              ],
+                            ).p12(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                            ).pOnly(left: 15, top: 10),
+                            Container(
+                              decoration:
+                                  BoxDecoration(border: Border.all(width: 2)),
+                              child: Image.network(
+                                display_image,
+                                fit: BoxFit.scaleDown,
+                              ).p16(),
                             ).p16(),
-                          ).p16(),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Column(
-                                children: [
-                                  InkWell(
-                                      onTap: () async {
-                                        await _player.setAudioSource(
-                                            AudioSource.uri(Uri.parse(link)));
-                                        isPlayed
-                                            ? _player.pause()
-                                            : _player.play();
-                                        setState(() {
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Column(
+                                  children: [
+                                    InkWell(
+                                        onTap: () async {
+                                          await _player.setAudioSource(
+                                              AudioSource.uri(Uri.parse(link)));
                                           isPlayed
-                                              ? (isPlayed = false)
-                                              : (isPlayed = true);
-                                        });
-                                      },
-                                      child: isPlayed
-                                          ? Icon(
-                                              CupertinoIcons.pause_circle,
-                                              color: Colors.red,
-                                              size: 40,
-                                            )
-                                          : Icon(
-                                              CupertinoIcons.play_circle,
-                                              color: Colors.red,
-                                              size: 40,
-                                            )),
-                                ],
-                              ).pOnly(left: 15),
-                              Column(
-                                children: [
-                                  InkWell(
-                                      onTap: () => downloadMusic(),
-                                      child: Icon(
-                                        Icons.download_rounded,
-                                        color: Colors.red,
-                                        size: 40,
-                                      )),
-                                ],
-                              ).pOnly(left: 215),
-                            ],
-                          ).pOnly(left: 15),
-                          // ProgressBar(
-                          //   progress: Duration.zero,
-                          //   total: Duration.zero,
-                          //   baseBarColor: Colors.red,
-                          // ).pOnly(left: 40, right: 40, top: 20),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 50),
-                            child: Material(
-                                color: Colors.red,
-                                borderRadius:
-                                    BorderRadius.circular(isClicked ? 50 : 8),
-                                child: InkWell(
-                                  onTap: () => downloadMusic(),
-                                  child: AnimatedContainer(
-                                    duration: Duration(seconds: 1),
-                                    width: isClicked ? 70 : 150,
-                                    height: 70,
-                                    child: Center(
-                                        child: Text(
-                                      "Dondload",
-                                      style: TextStyle(color: Colors.white),
-                                    )
-                                        // : (isClicked
-                                        //     ? CircularProgressIndicator(
-                                        //         value: _percentage,
-                                        //         color: Colors.white,
-                                        //         strokeWidth: 10,
-                                        //         backgroundColor: Colors.red,
-                                        //       )
-                                        //     : Text(
-                                        //         "Download",
-                                        //         style: TextStyle(
-                                        //            color: Colors.white))),
-                                        ),
-                                  ),
-                                )),
-                          ),
-                          Text(
-                            downloadText,
-                            style: TextStyle(color: Colors.white),
-                          ).p16(),
-                        ],
-                      ),
-                    ],
+                                              ? _player.pause()
+                                              : _player.play();
+                                          setState(() {
+                                            isPlayed
+                                                ? (isPlayed = false)
+                                                : (isPlayed = true);
+                                          });
+                                        },
+                                        child: isPlayed
+                                            ? Icon(
+                                                CupertinoIcons.pause_circle,
+                                                color: Colors.red,
+                                                size: 40,
+                                              )
+                                            : Icon(
+                                                CupertinoIcons.play_circle,
+                                                color: Colors.red,
+                                                size: 40,
+                                              )),
+                                  ],
+                                ).pOnly(left: 15),
+                                Column(
+                                  children: [
+                                    InkWell(
+                                        onTap: () => downloadMusic(),
+                                        child: Icon(
+                                          Icons.download_rounded,
+                                          color: Colors.red,
+                                          size: 40,
+                                        )),
+                                  ],
+                                ).pOnly(left: 215),
+                              ],
+                            ).pOnly(left: 15),
+                            // ProgressBar(
+                            //   progress: Duration.zero,
+                            //   total: Duration.zero,
+                            //   baseBarColor: Colors.red,
+                            // ).pOnly(left: 40, right: 40, top: 20),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 50),
+                              child: Material(
+                                  color: Colors.red,
+                                  borderRadius:
+                                      BorderRadius.circular(isClicked ? 50 : 8),
+                                  child: InkWell(
+                                    onTap: () => downloadMusic(),
+                                    child: AnimatedContainer(
+                                      duration: Duration(seconds: 1),
+                                      width: isClicked ? 70 : 150,
+                                      height: 70,
+                                      child: Center(
+                                        child: _isDownload
+                                            ? Icon(Icons.done)
+                                            : (isClicked
+                                                ? CircularProgressIndicator(
+                                                    value: _percentage,
+                                                    color: Colors.white,
+                                                    strokeWidth: 10,
+                                                    backgroundColor: Colors.red,
+                                                  )
+                                                : Text("Download",
+                                                    style: TextStyle(
+                                                        color: Colors.white))),
+                                      ),
+                                    ),
+                                  )),
+                            ),
+                            Text(
+                              downloadText,
+                              style: TextStyle(color: Colors.white),
+                            ).p16(),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              );
+    );
   }
 }
